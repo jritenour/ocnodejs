@@ -2,20 +2,6 @@ apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: application-template-stibuild
-metadata:
-  annotations:
-    description: >-
-      This example shows how to create a simple nodejs application in openshift
-      origin v3
-    iconClass: icon-nodejs
-    tags: 'instant-app,nodejs'
-  creationTimestamp: '2020-02-19T18:45:55Z'
-  name: nodejs-helloworld-sample
-  namespace: cicd-new
-  resourceVersion: '247603'
-  selfLink: >-
-    /apis/template.openshift.io/v1/namespaces/cicd-new/templates/nodejs-helloworld-sample
-  uid: 0fd88d36-5348-11ea-8a14-121943bdf791
 objects:
   - apiVersion: v1
     kind: Service
