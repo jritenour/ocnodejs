@@ -1,0 +1,217 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  template: application-template-stibuild
+metadata:
+  annotations:
+    description: >-
+      This example shows how to create a simple nodejs application in openshift
+      origin v3
+    iconClass: icon-nodejs
+    tags: 'instant-app,nodejs'
+  creationTimestamp: '2020-02-19T18:45:55Z'
+  name: nodejs-helloworld-sample
+  namespace: cicd-new
+  resourceVersion: '247603'
+  selfLink: >-
+    /apis/template.openshift.io/v1/namespaces/cicd-new/templates/nodejs-helloworld-sample
+  uid: 0fd88d36-5348-11ea-8a14-121943bdf791
+objects:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: frontend-prod
+    spec:
+      ports:
+        - name: web
+          nodePort: 0
+          port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        name: frontend-prod
+      sessionAffinity: None
+      type: ClusterIP
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: Route
+    metadata:
+      name: frontend
+    spec:
+      tls:
+        termination: edge
+      to:
+        kind: Service
+        name: frontend
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: frontend-prod
+    spec:
+      replicas: 1
+      selector:
+        name: frontend-prod
+      strategy:
+        rollingParams:
+          intervalSeconds: 1
+          timeoutSeconds: 120
+          updatePeriodSeconds: 1
+        type: Rolling
+      template:
+        metadata:
+          labels:
+            name: frontend-prod
+        spec:
+          containers:
+            - image: ' '
+              imagePullPolicy: IfNotPresent
+              name: nodejs-helloworld
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+              resources:
+                limits:
+                  memory: '${MEMORY_LIMIT}'
+              securityContext:
+                capabilities: {}
+                privileged: false
+              terminationMessagePath: /dev/termination-log
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+      triggers:
+        - imageChangeParams:
+            automatic: true
+            containerNames:
+              - nodejs-helloworld
+            from:
+              kind: ImageStreamTag
+              name: 'origin-nodejs-sample:prod'
+          type: ImageChange
+        - type: ConfigChange
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: frontend
+    spec:
+      ports:
+        - name: web
+          nodePort: 0
+          port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        name: frontend
+      sessionAffinity: None
+      type: ClusterIP
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: origin-nodejs-sample
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: origin-nodejs-sample2
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: origin-nodejs-sample3
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: nodejs-10
+    spec:
+      dockerImageRepository: '${NAMESPACE}/nodejs-10'
+  - apiVersion: v1
+    kind: BuildConfig
+    metadata:
+      labels:
+        name: nodejs-sample-build
+      name: frontend
+    spec:
+      output:
+        to:
+          kind: ImageStreamTag
+          name: 'origin-nodejs-sample:latest'
+      resources: {}
+      source:
+        git:
+          uri: 'https://github.com/openshift/nodejs-ex.git'
+        type: Git
+      strategy:
+        sourceStrategy:
+          from:
+            kind: ImageStreamTag
+            name: 'nodejs-10:latest'
+        type: Source
+      triggers:
+        - github:
+            secret: secret101
+          type: GitHub
+        - generic:
+            secret: secret101
+          type: Generic
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: frontend
+    spec:
+      replicas: 1
+      selector:
+        name: frontend
+      strategy:
+        rollingParams:
+          intervalSeconds: 1
+          timeoutSeconds: 120
+          updatePeriodSeconds: 1
+        type: Rolling
+      template:
+        metadata:
+          labels:
+            name: frontend
+        spec:
+          containers:
+            - image: ' '
+              imagePullPolicy: IfNotPresent
+              name: nodejs-helloworld
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+              resources:
+                limits:
+                  memory: '${MEMORY_LIMIT}'
+              securityContext:
+                capabilities: {}
+                privileged: false
+              terminationMessagePath: /dev/termination-log
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+      triggers:
+        - imageChangeParams:
+            automatic: false
+            containerNames:
+              - nodejs-helloworld
+            from:
+              kind: ImageStreamTag
+              name: 'origin-nodejs-sample:latest'
+          type: ImageChange
+        - type: ConfigChange
+parameters:
+  - description: Maximum amount of memory the container can use.
+    displayName: Memory Limit
+    name: MEMORY_LIMIT
+    value: 512Mi
+  - description: The OpenShift Namespace where the ImageStream resides.
+    displayName: Namespace
+    name: NAMESPACE
+    value: openshift
+  - description: Username for the administrator of this application.
+    displayName: Administrator Username
+    from: 'admin[A-Z0-9]{3}'
+    generate: expression
+    name: ADMIN_USERNAME
+  - description: Password for the administrator of this application.
+    displayName: Administrator Password
+    from: '[a-zA-Z0-9]{8}'
+    generate: expression
+    name: ADMIN_PASSWORD
